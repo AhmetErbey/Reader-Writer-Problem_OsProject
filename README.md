@@ -22,12 +22,8 @@ This project implements a solution to the classic Reader-Writer synchronization 
 javac *.java
 ```
 
-### Step 2: Run Simple Test
-```bash
-java TestSimple
-```
 
-### Step 3: Run Detailed Test (Optional)
+### Step 2: Run Main Test
 ```bash
 java Test
 ```
@@ -36,38 +32,47 @@ java Test
 
 | File | Description |
 |------|-------------|
-| `ReadWriteLockSimple.java` | Main solution - 4 required methods |
-| `ReadWriteLock.java` | Extended version with additional features |
-| `TestSimple.java` | Simple test with inline thread classes |
-| `Test.java` | Detailed test program |
+| `ReadWriteLock.java` | Main synchronization solution (with all requirements) |
+| `Test.java` | Main test program |
 | `Reader.java` | Reader thread class |
 | `Writer.java` | Writer thread class |
 | `SharedData.java` | Shared data class |
 
 ## 🔑 Solution Algorithm
 
+
 ```
 Semaphores:
-- mutex (1): Protects readCount variable
-- wrt (1): Writer's exclusive access
+- mutex (1): Protects activeReaders and readersFinished
+- writeLock (1): Writer's exclusive access
+- readComplete (1): Ensures all readers have read before next write
+- readerCountMutex (1): Protects totalReaders
 
 readLock():
   mutex.acquire()
-  readCount++
-  if (readCount == 1) wrt.acquire()  // First reader blocks writers
+  activeReaders++
+  if (activeReaders == 1) writeLock.acquire()  // First reader blocks writers
   mutex.release()
 
 readUnLock():
   mutex.acquire()
-  readCount--
-  if (readCount == 0) wrt.release()  // Last reader allows writers
+  activeReaders--
+  readersFinished++
+  if (activeReaders == 0) writeLock.release()  // Last reader allows writers
+  if (readersFinished >= totalReaders && totalReaders > 0) {
+    readComplete.release()
+    readersFinished = 0
+  }
   mutex.release()
 
 writeLock():
-  wrt.acquire()  // Exclusive access
+  writeLock.acquire()  // Exclusive access
 
 writeUnLock():
-  wrt.release()
+  writeLock.release()
+
+waitForAllReaders():
+  if (totalReaders > 0) readComplete.acquire()
 ```
 
 ## 📊 Expected Output
